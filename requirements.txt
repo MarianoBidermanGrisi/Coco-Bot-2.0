@@ -1,0 +1,7 @@
+flask
+gunicorn
+python-binance
+pandas
+numpy
+schedule
+python-telegram-bot
