@@ -4,7 +4,6 @@ import numpy as np
 from binance.client import Client
 from datetime import datetime, timedelta
 import time
-import schedule
 import json
 import os
 import asyncio
@@ -13,7 +12,9 @@ from threading import Thread
 import logging
 import sys
 
-# Configurar logging
+# ===============================
+# 🔐 Configuración del Logging
+# ===============================
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -21,7 +22,6 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     ]
 )
-
 logger = logging.getLogger(__name__)
 
 # ===============================
@@ -246,12 +246,14 @@ def calcular_puntaje_senal(df: pd.DataFrame, pesos: dict) -> dict:
     ])
 
     return {"compra": puntos_compra, "venta": puntos_venta}
-	
-	# === Telegram Setup ===
+
+# ===============================
+# 💬 Telegram Setup
+# ===============================
 from telegram import Bot
 
-TELEGRAM_TOKEN = "TU_TOKEN_AQUI"  # ← Reemplaza
-TELEGRAM_CHAT_ID = 123456789     # ← Reemplaza
+TELEGRAM_TOKEN = "TU_TOKEN_AQUI"  # ← Reemplaza con tu token
+TELEGRAM_CHAT_ID = 123456789     # ← Reemplaza con tu ID
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
@@ -264,9 +266,9 @@ async def enviar_alerta_telegram(mensaje: str):
         )
         logger.info("✅ Alerta enviada por Telegram")
     except Exception as e:
-        logger.info(f"❌ Error enviando a Telegram: {e}")
-		
-		# ===============================
+        logger.error(f"❌ Error enviando a Telegram: {e}")
+
+# ===============================
 # 💾 Memoria y aprendizaje
 # ===============================
 def cargar_memoria():
@@ -279,10 +281,10 @@ def cargar_memoria():
                 return []
             return json.loads(content)
     except json.JSONDecodeError:
-        logger.info("⚠️ memoria_senales.json vacío o corrupto → creando nuevo")
+        logger.warning("⚠️ memoria_senales.json vacío o corrupto → creando nuevo")
         return []
     except Exception as e:
-        logger.info(f"❌ Error al cargar memoria: {e}")
+        logger.error(f"❌ Error al cargar memoria: {e}")
         return []
 
 def guardar_memoria(memoria):
@@ -314,7 +316,7 @@ def evaluar_resultados(memoria):
                 registro["resultado"] = "GANANCIA" if ult_precio < precio_entrada else "PÉRDIDA"
 
         except Exception as e:
-            logger.info(f"❌ Error evaluando resultado: {e}")
+            logger.error(f"❌ Error evaluando resultado: {e}")
 
     guardar_memoria(memoria)
 
@@ -370,8 +372,8 @@ def ajustar_pesos(memoria, pesos):
             pesos[key] *= 1.05  # Reforzar
 
     logger.info("🧠 Pesos ajustados según rendimiento reciente")
-	
-	# ===============================
+
+# ===============================
 # 🌐 Web Server (Flask)
 # ===============================
 app = Flask(__name__)
@@ -390,7 +392,7 @@ def index():
     <html lang="es">
     <head>
         <meta charset="UTF-8">
-        <title>Bot de Trading</title>
+        <title>Bot de Trading - Estado Actual</title>
         <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             .log { background: #f4f4f4; padding: 10px; margin: 5px 0; border-left: 4px solid #007BFF; }
@@ -398,25 +400,48 @@ def index():
             .success { color: green; }
             h1 { color: #333; }
         </style>
+        <script>
+            async function actualizarEstado() {
+                try {
+                    const response = await fetch('/actualizar');
+                    const data = await response.json();
+                    document.getElementById('fecha').innerText = data.fecha;
+                    document.getElementById('resultados').innerHTML = '';
+                    data.resultados.forEach(resultado => {
+                        const div = document.createElement('div');
+                        div.className = resultado.includes('Sin señal') ? 'log error' : 'log success';
+                        div.innerText = resultado;
+                        document.getElementById('resultados').appendChild(div);
+                    });
+                    document.getElementById('mensaje').innerText = data.mensaje;
+                } catch (e) {
+                    console.error('Error actualizando estado:', e);
+                }
+            }
+            setInterval(actualizarEstado, 5000);
+            window.onload = actualizarEstado;
+        </script>
     </head>
     <body>
         <h1>🤖 Bot de Trading - Estado Actual</h1>
-        <div class="log"><strong>Última ejecución:</strong> {{ fecha }}</div>
-        {% for resultado in resultados %}
-        <div class="log {% if 'Sin señal' in resultado %}error{% else %}success{% endif %}">
-            {{ resultado }}
-        </div>
-        {% endfor %}
-        <div class="log"><strong>Mensaje:</strong> {{ mensaje }}</div>
+        <div class="log"><strong>Última ejecución:</strong> <span id="fecha">Cargando...</span></div>
+        <div id="resultados"></div>
+        <div class="log"><strong>Mensaje:</strong> <span id="mensaje">Cargando...</span></div>
     </body>
     </html>
     """
-    return render_template_string(html,
-                                fecha=ultimo_analisis["fecha"],
-                                resultados=ultimo_analisis["resultados"],
-                                mensaje=ultimo_analisis["mensaje"])
-								
-								# ===============================
+    return render_template_string(html)
+
+@app.route('/actualizar')
+def actualizar():
+    """Actualiza el estado del bot y devuelve JSON"""
+    return {
+        "fecha": ultimo_analisis["fecha"],
+        "resultados": ultimo_analisis["resultados"],
+        "mensaje": ultimo_analisis["mensaje"]
+    }
+
+# ===============================
 # 🔁 Análisis principal
 # ===============================
 def ejecutar_analisis():
@@ -533,8 +558,8 @@ def ejecutar_analisis():
             ultimo_analisis["resultados"].append(f"🟡 Sin señal clara para {symbol}")
 
     guardar_memoria(memoria)
-	
-	# ===============================
+
+# ===============================
 # ▶️ Ejecución automática + Web Server
 # ===============================
 if __name__ == "__main__":
@@ -546,20 +571,21 @@ if __name__ == "__main__":
     # Iniciar el analizador en segundo plano
     def iniciar_analizador():
         while True:
-            ejecutar_analisis()
-            time.sleep(1 * 45)  # cada 45 segundos
+            try:
+                ejecutar_analisis()
+            except Exception as e:
+                logger.error(f"❌ Error en el analizador: {e}")
+            time.sleep(45)  # Cada 45 segundos
 
-    from threading import Thread
     thread = Thread(target=iniciar_analizador)
     thread.daemon = True
     thread.start()
 
     # Iniciar el servidor web
     app.run(host='0.0.0.0', port=10000, debug=False)
-		
-		
 	
 	
 	
 
 	
+
