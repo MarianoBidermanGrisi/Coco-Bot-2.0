@@ -441,6 +441,11 @@ def actualizar():
         "mensaje": ultimo_analisis["mensaje"]
     }
 
+@app.route('/health')
+def health():
+    """Health check para Render"""
+    return {"status": "ok"}
+
 # ===============================
 # 🔁 Análisis principal
 # ===============================
@@ -570,6 +575,7 @@ if __name__ == "__main__":
 
     # Iniciar el analizador en segundo plano
     def iniciar_analizador():
+        """Inicia el analizador en segundo plano"""
         while True:
             try:
                 ejecutar_analisis()
@@ -581,11 +587,14 @@ if __name__ == "__main__":
     thread.daemon = True
     thread.start()
 
+    # Forzar una primera ejecución
+    ejecutar_analisis()
+
     # Iniciar el servidor web
     app.run(host='0.0.0.0', port=10000, debug=False)
 	
 	
-	
 
 	
+
 
