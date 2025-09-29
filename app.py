@@ -38,7 +38,7 @@ TIMEFRAMES = ["1m", "3m", "5m", "15m"]
 DATA_LIMIT = 1000
 MEMORIA_FILE = "memoria_senales.json"
 EVALUACION_MINUTOS = 30
-UMBRAL_CONFLUENCIA = 6.0
+UMBRAL_CONFLUENCIA = 3.0  # 🔥 Más sensibilidad = más señales original 6.0
 
 # ===============================
 # 🛠️ Funciones técnicas
@@ -460,13 +460,13 @@ def ejecutar_analisis():
     evaluar_resultados(memoria)
 
     pesos = {
-        "cocodriloup": 3.0,
-        "showsignal_up": 2.0,
-        "nwe_crossover": 2.0,
-        "vma_trend_up": 1.0,
-        "cocodrilodn": 3.0,
-        "showsignal_down": 2.0,
-        "nwe_crossunder": 2.0,
+        "cocodriloup": 2.0,    # Menor peso → más flexibilidad original 3.0
+        "showsignal_up": 1.5,  # Señal rápida activa antes original 2.0
+        "nwe_crossover": 1.5,  # Rompimiento de canal cuenta rápido original 2.0
+        "vma_trend_up": 1.0,   # Tendencia confirmada, pero menos peso original 1.0
+        "cocodrilodn": 2.0,    # original 3.0
+        "showsignal_down": 1.5,# original 2.0
+        "nwe_crossunder": 1.5, # original 2.0
         "vma_trend_down": 1.0
     }
     ajustar_pesos(memoria, pesos)
