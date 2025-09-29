@@ -573,9 +573,11 @@ if __name__ == "__main__":
         with open(MEMORIA_FILE, "w") as f:
             f.write("[]")
 
+    # Forzar una primera ejecución
+    ejecutar_analisis()
+
     # Iniciar el analizador en segundo plano
     def iniciar_analizador():
-        """Inicia el analizador en segundo plano"""
         while True:
             try:
                 ejecutar_analisis()
@@ -587,14 +589,9 @@ if __name__ == "__main__":
     thread.daemon = True
     thread.start()
 
-    # Forzar una primera ejecución
-    ejecutar_analisis()
-
     # Iniciar el servidor web
     app.run(host='0.0.0.0', port=10000, debug=False)
 	
-	
 
-	
 
 
