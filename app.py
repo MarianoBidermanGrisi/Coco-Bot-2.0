@@ -10,6 +10,19 @@ import os
 import asyncio
 from flask import Flask, render_template_string
 from threading import Thread
+import logging
+import sys
+
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 # ===============================
 # 🔐 Configuración Binance
@@ -57,9 +70,9 @@ def descargar_datos(symbol: str, interval: str, limit: int):
             if not df.empty and len(df) >= 200:
                 return df
         except Exception as e:
-            print(f"❌ Error descargando {symbol} ({interval}) - Intento {intento + 1}: {e}")
+            logger.info(f"❌ Error descargando {symbol} ({interval}) - Intento {intento + 1}: {e}")
             time.sleep(2)
-    print(f"⚠️ {symbol} ({interval}): No se pudieron obtener datos")
+    logger.info(f"⚠️ {symbol} ({interval}): No se pudieron obtener datos")
     return None
 
 # ===============================
@@ -249,9 +262,9 @@ async def enviar_alerta_telegram(mensaje: str):
             text=mensaje,
             parse_mode='Markdown'
         )
-        print("✅ Alerta enviada por Telegram")
+        logger.info("✅ Alerta enviada por Telegram")
     except Exception as e:
-        print(f"❌ Error enviando a Telegram: {e}")
+        logger.info(f"❌ Error enviando a Telegram: {e}")
 		
 		# ===============================
 # 💾 Memoria y aprendizaje
@@ -266,10 +279,10 @@ def cargar_memoria():
                 return []
             return json.loads(content)
     except json.JSONDecodeError:
-        print("⚠️ memoria_senales.json vacío o corrupto → creando nuevo")
+        logger.info("⚠️ memoria_senales.json vacío o corrupto → creando nuevo")
         return []
     except Exception as e:
-        print(f"❌ Error al cargar memoria: {e}")
+        logger.info(f"❌ Error al cargar memoria: {e}")
         return []
 
 def guardar_memoria(memoria):
@@ -301,7 +314,7 @@ def evaluar_resultados(memoria):
                 registro["resultado"] = "GANANCIA" if ult_precio < precio_entrada else "PÉRDIDA"
 
         except Exception as e:
-            print(f"❌ Error evaluando resultado: {e}")
+            logger.info(f"❌ Error evaluando resultado: {e}")
 
     guardar_memoria(memoria)
 
@@ -356,7 +369,7 @@ def ajustar_pesos(memoria, pesos):
         elif precision > 0.7:
             pesos[key] *= 1.05  # Reforzar
 
-    print("🧠 Pesos ajustados según rendimiento reciente")
+    logger.info("🧠 Pesos ajustados según rendimiento reciente")
 	
 	# ===============================
 # 🌐 Web Server (Flask)
@@ -408,7 +421,7 @@ def index():
 # ===============================
 def ejecutar_analisis():
     global ultimo_analisis
-    print(f"\n📆 [{datetime.now().strftime('%Y-%m-%d %H:%M')}] Iniciando análisis...")
+    logger.info(f"\n📆 [{datetime.now().strftime('%Y-%m-%d %H:%M')}] Iniciando análisis...")
     ultimo_analisis["fecha"] = datetime.now().strftime('%Y-%m-%d %H:%M')
     ultimo_analisis["resultados"] = []
     ultimo_analisis["mensaje"] = ""
@@ -429,7 +442,7 @@ def ejecutar_analisis():
     ajustar_pesos(memoria, pesos)
 
     for symbol in SYMBOLS:
-        print(f"\n🔍 Analizando {symbol}...")
+        logger.info(f"🔍 Analizando {symbol}...")
         ultimo_analisis["resultados"].append(f"Analizando {symbol}...")
         puntaje_total_compra = 0
         puntaje_total_venta = 0
@@ -469,7 +482,7 @@ def ejecutar_analisis():
 *Timeframes activos:* `{[d['tf'] for d in detalles if d['compra'] > 0]}`
 *Fecha:* {datetime.now().strftime('%Y-%m-%d %H:%M')}
 """
-            print(mensaje.strip())
+            logger.info(mensaje.strip())
             ultimo_analisis["resultados"].append(f"✅ SEÑAL DE COMPRA en {symbol}")
             ultimo_analisis["mensaje"] = "Señal de compra detectada"
 
@@ -499,7 +512,7 @@ def ejecutar_analisis():
 *Timeframes activos:* `{[d['tf'] for d in detalles if d['venta'] > 0]}`
 *Fecha:* {datetime.now().strftime('%Y-%m-%d %H:%M')}
 """
-            print(mensaje.strip())
+            logger.info(mensaje.strip())
             ultimo_analisis["resultados"].append(f"✅ SEÑAL DE VENTA en {symbol}")
             ultimo_analisis["mensaje"] = "Señal de venta detectada"
 
@@ -534,7 +547,7 @@ if __name__ == "__main__":
     def iniciar_analizador():
         while True:
             ejecutar_analisis()
-            time.sleep(15 * 60)  # 15 minutos
+            time.sleep(1 * 45)  # cada 45 segundos
 
     from threading import Thread
     thread = Thread(target=iniciar_analizador)
@@ -546,4 +559,7 @@ if __name__ == "__main__":
 		
 		
 	
+	
+	
+
 	
