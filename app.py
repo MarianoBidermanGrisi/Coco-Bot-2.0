@@ -399,7 +399,7 @@ def index():
     <head>
         <meta charset="UTF-8">
         <title>Bot de Trading - Estado Actual</title>
-        <meta http-equiv="refresh" content="45"> <!-- 🔁 Recarga cada 45 segundos -->
+        <meta http-equiv="refresh" content="180"> <!-- 🔁 Recarga cada 45 segundos -->
         <style>
             body {{ font-family: Arial, sans-serif; margin: 20px; background: #fff; }}
             .log {{ 
@@ -566,12 +566,15 @@ if __name__ == "__main__":
                 ejecutar_analisis()
             except Exception as e:
                 logger.error(f"❌ Error en el analizador: {e}")
-            time.sleep(45)  # Cada 45 segundos
+            time.sleep(180)  # Cada 45 segundos
 
     thread = Thread(target=iniciar_analizador)
     thread.start()
 
     # Iniciar el servidor web
     app.run(host='0.0.0.0', port=10000, debug=False)
+
+
+
 
 
