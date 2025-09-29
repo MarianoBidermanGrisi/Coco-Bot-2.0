@@ -576,22 +576,17 @@ if __name__ == "__main__":
     # Forzar una primera ejecución
     ejecutar_analisis()
 
-    # Iniciar el analizador en segundo plano
-    def iniciar_analizador():
-        while True:
-            try:
-                ejecutar_analisis()
-            except Exception as e:
-                logger.error(f"❌ Error en el analizador: {e}")
+    # Iniciar el servidor web en un hilo separado
+    from threading import Thread
+    server_thread = Thread(target=lambda: app.run(host='0.0.0.0', port=10000, debug=False))
+    server_thread.daemon = True
+    server_thread.start()
+
+    # Iniciar el ciclo de análisis en el proceso principal
+    while True:
+        try:
+            ejecutar_analisis()
             time.sleep(45)  # Cada 45 segundos
-
-    thread = Thread(target=iniciar_analizador)
-    thread.daemon = True
-    thread.start()
-
-    # Iniciar el servidor web
-    app.run(host='0.0.0.0', port=10000, debug=False)
-	
-
-
+        except Exception as e:
+            logger.error(f"❌ Error en el ciclo principal: {e}")
 
