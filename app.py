@@ -1,4 +1,4 @@
-# app.py - Bot de trading como Web Service
+# app.py - Bot de trading como Web Service (con recarga completa cada 45s)
 import pandas as pd
 import numpy as np
 from binance.client import Client
@@ -387,59 +387,44 @@ ultimo_analisis = {
 
 @app.route('/')
 def index():
-    html = """
+    # Renderizamos la página completa con los últimos resultados
+    resultados_html = ""
+    for res in ultimo_analisis["resultados"]:
+        clase = "log error" if "Sin señal" in res else "log success"
+        resultados_html += f'<div class="{clase}">{res}</div>\n'
+
+    html = f"""
     <!DOCTYPE html>
     <html lang="es">
     <head>
         <meta charset="UTF-8">
         <title>Bot de Trading - Estado Actual</title>
+        <meta http-equiv="refresh" content="45"> <!-- 🔁 Recarga cada 45 segundos -->
         <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .log { background: #f4f4f4; padding: 10px; margin: 5px 0; border-left: 4px solid #007BFF; }
-            .error { color: red; }
-            .success { color: green; }
-            h1 { color: #333; }
+            body {{ font-family: Arial, sans-serif; margin: 20px; background: #fff; }}
+            .log {{ 
+                background: #f8f9fa; 
+                padding: 10px; 
+                margin: 8px 0; 
+                border-radius: 4px;
+                border-left: 4px solid #007BFF; 
+            }}
+            .log.error {{ border-left-color: #dc3545; color: #721c24; }}
+            .log.success {{ border-left-color: #28a745; color: #155724; }}
+            h1 {{ color: #333; }}
+            .fecha {{ font-weight: bold; color: #007bff; }}
         </style>
-        <script>
-            async function actualizarEstado() {
-                try {
-                    const response = await fetch('/actualizar');
-                    const data = await response.json();
-                    document.getElementById('fecha').innerText = data.fecha;
-                    document.getElementById('resultados').innerHTML = '';
-                    data.resultados.forEach(resultado => {
-                        const div = document.createElement('div');
-                        div.className = resultado.includes('Sin señal') ? 'log error' : 'log success';
-                        div.innerText = resultado;
-                        document.getElementById('resultados').appendChild(div);
-                    });
-                    document.getElementById('mensaje').innerText = data.mensaje;
-                } catch (e) {
-                    console.error('Error actualizando estado:', e);
-                }
-            }
-            setInterval(actualizarEstado, 5000);
-            window.onload = actualizarEstado;
-        </script>
     </head>
     <body>
         <h1>🤖 Bot de Trading - Estado Actual</h1>
-        <div class="log"><strong>Última ejecución:</strong> <span id="fecha">Cargando...</span></div>
-        <div id="resultados"></div>
-        <div class="log"><strong>Mensaje:</strong> <span id="mensaje">Cargando...</span></div>
+        <div class="log"><strong>Última ejecución:</strong> <span class="fecha">{ultimo_analisis["fecha"]}</span></div>
+        {resultados_html}
+        <div class="log"><strong>Mensaje:</strong> {ultimo_analisis["mensaje"] or "Esperando próxima señal..."}</div>
+        <p><em>🔄 Esta página se recarga automáticamente cada 45 segundos.</em></p>
     </body>
     </html>
     """
     return render_template_string(html)
-
-@app.route('/actualizar')
-def actualizar():
-    """Actualiza el estado del bot y devuelve JSON"""
-    return {
-        "fecha": ultimo_analisis["fecha"],
-        "resultados": ultimo_analisis["resultados"],
-        "mensaje": ultimo_analisis["mensaje"]
-    }
 
 @app.route('/health')
 def health():
@@ -460,13 +445,13 @@ def ejecutar_analisis():
     evaluar_resultados(memoria)
 
     pesos = {
-        "cocodriloup": 2.0,    # Menor peso → más flexibilidad original 3.0
-        "showsignal_up": 1.5,  # Señal rápida activa antes original 2.0
-        "nwe_crossover": 1.5,  # Rompimiento de canal cuenta rápido original 2.0
-        "vma_trend_up": 1.0,   # Tendencia confirmada, pero menos peso original 1.0
-        "cocodrilodn": 2.0,    # original 3.0
-        "showsignal_down": 1.5,# original 2.0
-        "nwe_crossunder": 1.5, # original 2.0
+        "cocodriloup": 2.0,
+        "showsignal_up": 1.5,
+        "nwe_crossover": 1.5,
+        "vma_trend_up": 1.0,
+        "cocodrilodn": 2.0,
+        "showsignal_down": 1.5,
+        "nwe_crossunder": 1.5,
         "vma_trend_down": 1.0
     }
     ajustar_pesos(memoria, pesos)
@@ -516,7 +501,6 @@ def ejecutar_analisis():
             ultimo_analisis["resultados"].append(f"✅ SEÑAL DE COMPRA en {symbol}")
             ultimo_analisis["mensaje"] = "Señal de compra detectada"
 
-            # Enviar por Telegram
             asyncio.run(enviar_alerta_telegram(mensaje))
 
             memoria.append({
@@ -546,7 +530,6 @@ def ejecutar_analisis():
             ultimo_analisis["resultados"].append(f"✅ SEÑAL DE VENTA en {symbol}")
             ultimo_analisis["mensaje"] = "Señal de venta detectada"
 
-            # Enviar por Telegram
             asyncio.run(enviar_alerta_telegram(mensaje))
 
             memoria.append({
@@ -576,7 +559,7 @@ if __name__ == "__main__":
     # Forzar una primera ejecución
     ejecutar_analisis()
 
-    # Iniciar el analizador en segundo plano (NO daemon)
+    # Iniciar el analizador en segundo plano
     def iniciar_analizador():
         while True:
             try:
@@ -586,8 +569,9 @@ if __name__ == "__main__":
             time.sleep(45)  # Cada 45 segundos
 
     thread = Thread(target=iniciar_analizador)
-    thread.start()  # No es daemon → se mantiene vivo
+    thread.start()
 
     # Iniciar el servidor web
     app.run(host='0.0.0.0', port=10000, debug=False)
+
 
