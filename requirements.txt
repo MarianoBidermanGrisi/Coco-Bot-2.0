@@ -4,4 +4,4 @@ python-binance
 pandas
 numpy
 schedule
-python-telegram-bot
+python-telegram-bot==20.7
