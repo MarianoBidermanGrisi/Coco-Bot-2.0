@@ -27,8 +27,8 @@ logger = logging.getLogger(__name__)
 # ===============================
 # 🔐 Configuración Binance
 # ===============================
-BINANCE_API_KEY = "oCYyOTBPPLr2ggLx8yszPRjSWxEecNQIL7U2iFPyhDTwsXNcD3otGMo1FtOdotHA"
-BINANCE_API_SECRET = "9qtqNGYJSQqJPVQPaRLt0vYbRo4IPnSj3hby1sRUoWBbhqI4ETfRvsNPHyyZbflx"
+BINANCE_API_KEY = os.getenv("BINANCE_API_KEY")
+BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET")
 
 client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
 
@@ -252,8 +252,8 @@ def calcular_puntaje_senal(df: pd.DataFrame, pesos: dict) -> dict:
 # ===============================
 from telegram import Bot
 
-TELEGRAM_TOKEN = "7969091726:AAFVTZAlWN0aA6uMtJgWfnQhzTRD3cpx4wM"  # ← Reemplaza con tu token
-TELEGRAM_CHAT_ID = 1570204748     # ← Reemplaza con tu ID
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")  # ← Reemplaza con tu token
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")     # ← Reemplaza con tu ID
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
@@ -573,6 +573,7 @@ if __name__ == "__main__":
 
     # Iniciar el servidor web
     app.run(host='0.0.0.0', port=10000, debug=False)
+
 
 
 
